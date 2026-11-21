@@ -60,7 +60,7 @@ doomsday/
    ├─ main.js
    ├─ config.js
    ├─ doomsdayEngine.js
-   ├─ methods/   index.js · classic12.js · odd11.js
+   ├─ methods/   index.js · classic12.js · odd11.js · anchor.js
    ├─ modes/     index.js · practice.js · competition.js
    ├─ gameModes.js
    ├─ storageManager.js
@@ -135,7 +135,7 @@ export function getMethod(id) → Method          // lanza error si no existe
 ### 5.4 `doomsdayEngine.js` (puro)
 ```js
 export function isLeap(year) → boolean
-export function centuryAnchor(year) → 0-6
+export function centuryAnchor(year) → 0-6 //reexporta methods/anchor.js
 export function doomsdayOfYear(year) → 0-6
 export function doomsdayOfMonth(year, month) → number     // día del mes que cae en doomsday
 export function weekdayOf(year, month, day) → 0-6
@@ -219,17 +219,18 @@ export function init({ root, storage, gameModes, stats }) → void
 ## 6. Checklist
 
 ### Bloque 0 — Preparación (tú)
-- [ ] 0.1 Crear carpeta `doomsday/` y abrirla en VS Code
-- [ ] 0.2 Instalar la extensión **Live Server** (o usar `python -m http.server`)
-- [ ] 0.3 Copiar este `PLAN.md` a la carpeta
-- [ ] 0.4 (Opcional) crear cuenta de GitHub para el despliegue final
+- [x] 0.1 Crear carpeta `doomsday/` y abrirla en VS Code
+- [x] 0.2 Instalar la extensión **Live Server** 
+- [x] 0.3 Copiar este `PLAN.md` a la carpeta
+- [x] 0.4 (Opcional) crear cuenta de GitHub para el despliegue final
 
 ### Bloque 1 — Núcleo
-- [ ] 1.1 `config.js` · *Hecho cuando:* se importa sin errores desde la consola
-- [ ] 1.2 `methods/classic12.js`, `odd11.js`, `index.js` · *Hecho cuando:* ambos dan el mismo `value` en 1000 años aleatorios
-- [ ] 1.3 `doomsdayEngine.js` · *Hecho cuando:* `weekdayOf` coincide con `Date` en todos los días de 1600–2500 (muestra amplia)
-- [ ] 1.4 `tests/engine.test.html` · *Hecho cuando:* muestra todas las pruebas en verde en el navegador
-- [ ] 1.5 Pistas y solución · *Hecho cuando:* ninguna pista revela el resultado y la solución termina en la respuesta correcta
+- [x] 1.1 `config.js` · *Hecho cuando:* se importa sin errores desde la consola
+- [x] 1.2 `methods/classic12.js`, `odd11.js`, `index.js` · *Hecho cuando:* ambos dan el mismo `value` en 1000 años aleatorios
+- [x] 1.3 `doomsdayEngine.js` · *Hecho cuando:* `weekdayOf` coincide con `Date` en todos los días de 1600–2500 (muestra amplia)
+- [x] 1.4 `tests/engine.test.html` · *Hecho cuando:* muestra todas las pruebas en verde en el navegador
+- [x] 1.5 Pistas y solución · *Hecho cuando:* ninguna pista revela el resultado y la solución termina en la respuesta correcta
+- [x] 1.6 (isValidDate y buildQuestion)
 
 ### Bloque 2 — Persistencia y modos
 - [ ] 2.1 `storageManager.js` · *Hecho cuando:* ajustes y récord sobreviven a recargar; `addAttempt`/`getAttempts` funcionan
@@ -278,3 +279,4 @@ Siempre que cambie la lista de archivos: actualizar `ASSETS` y subir `CACHE_NAME
 ## 8. Registro de decisiones
 
 - (vacío) Formato: `fecha · decisión · motivo`.
+- 2026-11-21 · centuryAnchor vive en methods/anchor.js; el motor lo reexporta · evita el import circular entre motor y métodos.

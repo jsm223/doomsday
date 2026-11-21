@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pruebas del motor Doomsday</title>
+<style>
+  :root { --bg: #ffffff; --fg: #1b1b1f; --muted: #6b6b76; --ok: #1a7f37; --fail: #cf222e; --line: #d8d8de; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #14141a; --fg: #ececf1; --muted: #9a9aa6; --ok: #3fb950; --fail: #ff7b72; --line: #33333d; }
+  }
+  body { font-family: system-ui, sans-serif; background: var(--bg); color: var(--fg); margin: 0; padding: 1rem; max-width: 60rem; }
+  h1 { font-size: 1.3rem; margin: 0 0 .5rem; }
+  #resumen { font-weight: 600; margin: 0 0 1rem; }
+  #resumen.ok { color: var(--ok); }
+  #resumen.fail { color: var(--fail); }
+  .tabla-scroll { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+  th, td { border-bottom: 1px solid var(--line); padding: .4rem .5rem; text-align: left; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  .ok-cell { color: var(--ok); font-weight: 700; }
+  .fail-cell { color: var(--fail); font-weight: 700; }
+  .detalle { color: var(--muted); }
+  .error { color: var(--fail); }
+</style>
+</head>
+<body>
+<h1>Pruebas del motor Doomsday</h1>
+<p id="resumen">Ejecutando pruebas…</p>
+<div class="tabla-scroll">
+  <table>
+    <thead><tr><th></th><th>Prueba</th><th>ms</th><th>Detalle</th></tr></thead>
+    <tbody id="filas"></tbody>
+  </table>
+</div>
+
+<script type="module">
+import * as engine from '../js/doomsdayEngine.js';
+import { WEEKDAYS, LEVELS } from '../js/config.js';
+import { listMethods, getMethod } from '../js/methods/index.js';
+
+// --- Utilidades de prueba ---------------------------------------------------
+
+const tests = [];
+function test(name, fn) { tests.push({ name, fn }); }
+
+function assert(cond, msg) { if (!cond) throw new Error(msg); }
+function eq(actual, expected, msg) {
+  if (actual !== expected) throw new Error(`${msg}: obtenido ${actual}, esperado ${expected}`);
+}
+function throws(fn, msg) {
+  try { fn(); } catch { return; }
+  throw new Error(`Debía lanzar error: ${msg}`);
+}
+
+// Referencia independiente: Date (gregoriano proléptico), válido para cualquier año.
+function dateWeekday(y, m, d) {
+  const dt = new Date(0);
+  dt.setUTCFullYear(y, m - 1, d);
+  return dt.getUTCDay();
+}
+function leap(y) { return (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0; }
+function daysIn(y, m) { return m === 2 ? (leap(y) ? 29 : 28) : [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][m - 1]; }
+
+// Generador pseudoaleatorio con semilla (resultados repetibles).
+function seeded(seed) {
+  let a = seed >>> 0;
+  return () => {
+    a += 0x6D2B79F5;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+const SAMPLE = 3000; // preguntas por prueba con muestreo
+
+// --- Pruebas ----------------------------------------------------------------
+
+test('weekdayOf coincide con Date en todos los días de 1600–2500', () => {
+  let n = 0;
+  for (let y = 1600; y <= 2500; y++) {
+    for (let m = 1; m <= 12; m++) {
+      const dim = daysIn(y, m);
+      for (let d = 1; d <= dim; d++) {
+        const got = engine.weekdayOf(y, m, d);
+        const exp = dateWeekday(y, m, d);
+        if (got !== exp) throw new Error(`${y}-${m}-${d}: motor ${got}, Date ${exp}`);
+        n++;
+      }
+    }
+  }
+  return `${n.toLocaleString('es')} fechas`;
+});
+
+test('weekdayOf coincide con Date en años 1–9999 (días 1, 15 y último de cada mes)', () => {
+  let n = 0;
+  for (let y = 1; y <= 9999; y++) {
+    for (let m = 1; m <= 12; m++) {
+      for (const d of [1, 15, daysIn(y, m)]) {
+        const got = engine.weekdayOf(y, m, d);
+        const exp = dateWeekday(y, m, d);
+        if (got !== exp) throw new Error(`${y}-${m}-${d}: motor ${got}, Date ${exp}`);
+        n++;
+      }
+    }
+  }
+  return `${n.toLocaleString('es')} fechas`;
+});
+
+test('doomsdayOfMonth: el día devuelto cae en el doomsday del año (1600–2500)', () => {
+  let n = 0;
+  for (let y = 1600; y <= 2500; y++) {
+    const dd = engine.doomsdayOfYear(y);
+    for (let m = 1; m <= 12; m++) {
+      const ref = engine.doomsdayOfMonth(y, m);
+      eq(dateWeekday(y, m, ref), dd, `${y}-${m} día ${ref}`);
+      n++;
+    }
+  }
+  throws(() => engine.doomsdayOfMonth(2024, 13), 'mes 13');
+  throws(() => engine.doomsdayOfMonth(2024, 0), 'mes 0');
+  return `${n} combinaciones año-mes`;
+});
+
+test('Todos los métodos registrados coinciden con el motor (1600–2500)', () => {
+  const methods = listMethods();
+  assert(methods.length >= 2, 'Debe haber al menos 2 métodos registrados');
+  for (const method of methods) {
+    for (let y = 1600; y <= 2500; y++) {
+      const { value } = method.explainYear(y);
+      eq(value, engine.doomsdayOfYear(y), `${method.id} en ${y}`);
+    }
+  }
+  return methods.map(m => m.id).join(', ');
+});
+
+test('Los métodos devuelven pasos con título y texto', () => {
+  for (const method of listMethods()) {
+    for (const y of [1600, 1850, 1999, 2000, 2024, 2500]) {
+      const { steps } = method.explainYear(y);
+      assert(Array.isArray(steps) && steps.length >= 4, `${method.id} ${y}: pasos insuficientes`);
+      for (const s of steps) {
+        assert(typeof s.title === 'string' && s.title.length > 0, `${method.id} ${y}: título vacío`);
+        assert(typeof s.text === 'string' && s.text.length > 0, `${method.id} ${y}: texto vacío`);
+      }
+    }
+  }
+});
+
+test('Registro de métodos: listMethods y getMethod', () => {
+  const ids = listMethods().map(m => m.id);
+  assert(ids.includes('classic12') && ids.includes('odd11'), 'Faltan classic12 u odd11');
+  eq(getMethod('odd11').id, 'odd11', 'getMethod');
+  throws(() => getMethod('no-existe'), 'método desconocido');
+  return ids.join(', ');
+});
+
+test('isLeap con casos conocidos', () => {
+  const casos = [[1600, true], [1700, false], [1800, false], [1900, false], [2000, true],
+                 [2023, false], [2024, true], [2100, false], [2400, true]];
+  for (const [y, esperado] of casos) eq(engine.isLeap(y), esperado, `isLeap(${y})`);
+});
+
+test('centuryAnchor con casos conocidos y errores', () => {
+  const casos = [[1600, 2], [1700, 0], [1800, 5], [1900, 3], [2000, 2], [2100, 0], [2200, 5], [2500, 0]];
+  for (const [y, esperado] of casos) eq(engine.centuryAnchor(y), esperado, `centuryAnchor(${y})`);
+  throws(() => engine.centuryAnchor(0), 'año 0');
+  throws(() => engine.centuryAnchor(1999.5), 'año decimal');
+});
+
+test('isValidDate: fechas válidas e inválidas', () => {
+  const validas = [[2024, 2, 29], [2000, 2, 29], [2023, 12, 31], [1, 1, 1], [9999, 12, 31]];
+  const invalidas = [[2023, 2, 29], [1900, 2, 29], [2026, 11, 31], [2024, 13, 1], [2024, 0, 1],
+                     [2024, 5, 0], [2024, 5, 32], [0, 1, 1], [10000, 1, 1], [2024.5, 1, 1], ['2024', 1, 1]];
+  for (const f of validas) assert(engine.isValidDate(...f), `Debía ser válida: ${f}`);
+  for (const f of invalidas) assert(!engine.isValidDate(...f), `Debía ser inválida: ${f}`);
+});
+
+test('weekdayOf lanza error con fechas no válidas', () => {
+  throws(() => engine.weekdayOf(2023, 2, 29), '29/2/2023');
+  throws(() => engine.weekdayOf(2024, 13, 1), 'mes 13');
+  throws(() => engine.weekdayOf(2024, 1, 0), 'día 0');
+});
+
+test('buildQuestion: campos correctos y rechazo de fechas inválidas', () => {
+  const q = engine.buildQuestion(2025, 11, 21);
+  eq(q.id, '2025-11-21', 'id');
+  eq(q.year, 2025, 'year'); eq(q.month, 11, 'month'); eq(q.day, 21, 'day');
+  eq(q.answer, 5, 'answer (viernes)');
+  eq(q.century, 20, 'century');
+  eq(q.isLeap, false, 'isLeap');
+  eq(engine.buildQuestion(2024, 2, 29).isLeap, true, 'isLeap 2024');
+  throws(() => engine.buildQuestion(2023, 2, 29), '29/2/2023');
+});
+
+test('generateQuestion: dentro del rango, fecha válida y respuesta = Date (todos los niveles)', () => {
+  let n = 0;
+  for (const level of LEVELS) {
+    const rng = seeded(1234 + n);
+    for (let i = 0; i < SAMPLE; i++) {
+      const q = engine.generateQuestion({ min: level.min, max: level.max }, rng);
+      assert(q.year >= level.min && q.year <= level.max, `${level.id}: año fuera de rango ${q.year}`);
+      assert(engine.isValidDate(q.year, q.month, q.day), `${level.id}: fecha no válida ${q.id}`);
+      eq(q.answer, dateWeekday(q.year, q.month, q.day), `${level.id} ${q.id}`);
+      n++;
+    }
+  }
+  throws(() => engine.generateQuestion({ min: 2000, max: 1999 }), 'rango invertido');
+  throws(() => engine.generateQuestion({ min: 0, max: 10 }), 'año mínimo 0');
+  return `${n.toLocaleString('es')} preguntas`;
+});
+
+test('checkAnswer', () => {
+  const q = engine.buildQuestion(2025, 11, 21);
+  assert(engine.checkAnswer(q, 5), 'Debía acertar con 5');
+  assert(!engine.checkAnswer(q, 4), 'Debía fallar con 4');
+  assert(!engine.checkAnswer(q, null), 'Debía fallar con null');
+  assert(!engine.checkAnswer(q, '5'), 'Debía fallar con "5"');
+});
+
+test('Pistas: 4 textos y ninguna revela el resultado (todos los métodos)', () => {
+  let n = 0;
+  for (const method of listMethods()) {
+    const rng = seeded(777);
+    for (let i = 0; i < SAMPLE; i++) {
+      const q = engine.generateQuestion({ min: 1600, max: 2500 }, rng);
+      const hints = engine.getHints(q, method.id);
+      eq(hints.length, 4, `${method.id} ${q.id}: nº de pistas`);
+      hints.forEach((h, k) => assert(typeof h === 'string' && h.length > 0, `${method.id} ${q.id}: pista ${k} vacía`));
+      const frase = `cae en ${WEEKDAYS[dateWeekday(q.year, q.month, q.day)]}`;
+      hints.forEach(h => assert(!h.includes(frase), `${method.id} ${q.id}: una pista contiene la respuesta`));
+      WEEKDAYS.forEach(w => assert(!hints[3].includes(w), `${method.id} ${q.id}: la última pista nombra un día`));
+      assert(hints[0].toLowerCase().includes('ancla'), `${method.id} ${q.id}: la primera pista debe hablar del ancla`);
+      n++;
+    }
+  }
+  throws(() => engine.getHints(engine.buildQuestion(2025, 11, 21), 'no-existe'), 'método desconocido');
+  return `${n.toLocaleString('es')} comprobaciones`;
+});
+
+test('Solución: pasos completos y último paso = respuesta correcta (todos los métodos)', () => {
+  let n = 0;
+  for (const method of listMethods()) {
+    const rng = seeded(4242);
+    for (let i = 0; i < SAMPLE; i++) {
+      const q = engine.generateQuestion({ min: 1600, max: 2500 }, rng);
+      const steps = engine.getSolution(q, method.id);
+      assert(steps.length >= 7, `${method.id} ${q.id}: pocos pasos (${steps.length})`);
+      steps.forEach((s, k) => assert(s.title && s.text, `${method.id} ${q.id}: paso ${k} incompleto`));
+      const last = steps[steps.length - 1];
+      eq(last.title, 'Respuesta', `${method.id} ${q.id}: título del último paso`);
+      assert(last.text.includes(`cae en ${WEEKDAYS[dateWeekday(q.year, q.month, q.day)]}`),
+        `${method.id} ${q.id}: la respuesta final no coincide con Date`);
+      n++;
+    }
+  }
+  return `${n.toLocaleString('es')} soluciones`;
+});
+
+// --- Ejecución y presentación -----------------------------------------------
+
+const filas = document.getElementById('filas');
+const resumen = document.getElementById('resumen');
+
+function addRow(ok, name, ms, detalle, esError) {
+  const tr = document.createElement('tr');
+  const celdas = [ok ? '✓' : '✗', name, String(ms), detalle || ''];
+  celdas.forEach((texto, i) => {
+    const td = document.createElement('td');
+    td.textContent = texto;
+    if (i === 0) td.className = ok ? 'ok-cell' : 'fail-cell';
+    if (i === 3) td.className = esError ? 'error' : 'detalle';
+    tr.appendChild(td);
+  });
+  filas.appendChild(tr);
+}
+
+async function run() {
+  let ok = 0;
+  let fail = 0;
+  for (const t of tests) {
+    const inicio = performance.now();
+    let detalle = '';
+    let error = null;
+    try { detalle = (await t.fn()) || ''; } catch (e) { error = e; }
+    const ms = Math.round(performance.now() - inicio);
+    if (error) {
+      fail++;
+      addRow(false, t.name, ms, error.message, true);
+      console.error(`✗ ${t.name}:`, error);
+    } else {
+      ok++;
+      addRow(true, t.name, ms, detalle, false);
+    }
+    await new Promise(r => setTimeout(r)); // deja que el navegador pinte
+  }
+  const total = tests.length;
+  const todoOk = fail === 0;
+  resumen.textContent = todoOk
+    ? `✓ ${ok} de ${total} pruebas superadas`
+    : `✗ ${fail} de ${total} pruebas fallan (${ok} superadas)`;
+  resumen.className = todoOk ? 'ok' : 'fail';
+  document.title = `${todoOk ? '✓' : '✗'} ${ok}/${total} · Pruebas del motor`;
+  console.log(resumen.textContent);
+}
+
+run();
+</script>
+</body>
+</html>
