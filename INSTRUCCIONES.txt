@@ -1,0 +1,158 @@
+INSTRUCCIONES Y COMANDOS UTILES - App Doomsday
+==============================================
+(Atajos para Windows/Linux. En Mac cambia Ctrl por Cmd.)
+
+
+1. PREPARACION (UNA SOLA VEZ)
+-----------------------------
+ 1. Cuenta en github.com
+ 2. Instalar Git para Windows (git-scm.com), opciones por defecto.
+    Reiniciar VS Code despues.
+ 3. En GitHub: New repository
+      - Nombre: doomsday
+      - Public (Pages es gratis solo en repos publicos)
+      - NO marcar README, .gitignore ni licencia
+ 4. En VS Code: Terminal > New Terminal (se abre en tu carpeta doomsday)
+ 5. Presentarte a Git:
+      git config --global user.name "Tu Nombre"
+      git config --global user.email "tu-correo@ejemplo.com"
+
+
+2. PRIMERA SUBIDA (SOLO LA PRIMERA VEZ)
+---------------------------------------
+ (Cambia TUUSUARIO por tu usuario de GitHub)
+
+      git init
+      git branch -M main
+      git add .
+      git commit -m "Estructura inicial y PLAN.md"
+      git remote add origin https://github.com/TUUSUARIO/doomsday.git
+      git push -u origin main
+
+ La primera vez se abre el navegador para autorizar a GitHub.
+ Al acabar, recarga la pagina del repositorio: veras tus archivos.
+
+
+3. CICLO DE TRABAJO (CADA SESION)
+---------------------------------
+ a) Al empezar: traer lo que haya en GitHub
+      git pull
+
+ b) Trabajar: guardar archivos y probar con Live Server.
+
+ c) Al cerrar una tarea del checklist (ya probada y tachada en PLAN.md):
+      git status
+      git add .
+      git commit -m "1.3 doomsdayEngine.js"
+      git push
+
+ Consejo: un commit por tarea del checklist, con su ID en el mensaje.
+ Asi el historial de Git refleja el PLAN.md.
+
+
+4. COMANDOS GIT UTILES
+----------------------
+ git status                         Ver que ha cambiado
+ git diff                           Ver los cambios linea a linea
+ git log --oneline                  Historial resumido
+ git restore archivo.js             Descartar cambios de un archivo
+                                    (vuelve al ultimo commit)
+ git restore --staged archivo.js    Deshacer un "git add"
+ git commit --amend -m "nuevo"      Corregir el mensaje del ultimo commit
+                                    (solo si aun NO hiciste push)
+ git remote -v                      Ver a que repositorio apunta tu carpeta
+ git branch                         Ver en que rama estas (debe ser main)
+
+ Alternativa grafica: Ctrl+Shift+G (Source Control) > escribir mensaje >
+ Commit > Sync Changes (hace pull y push).
+
+
+5. ATAJOS DE VS CODE
+--------------------
+ Ctrl+Shift+X        Extensiones
+ Ctrl+Shift+G        Control de versiones (Git)
+ Ctrl+Shift+E        Explorador de archivos
+ Ctrl+`              Abrir / cerrar el terminal
+ Ctrl+P              Abrir un archivo por nombre
+ Ctrl+Shift+P        Paleta de comandos
+ Ctrl+S              Guardar (Live Server recarga solo)
+ Ctrl+B              Ocultar / mostrar la barra lateral
+ Alt+Z               Ajuste de linea (para leer codigo largo)
+ Boton "Go Live"    (abajo a la derecha) Arrancar / parar Live Server
+
+
+6. NAVEGADOR Y HERRAMIENTAS DE DESARROLLO (CHROME / EDGE)
+---------------------------------------------------------
+ F12                 Abrir / cerrar las herramientas
+ Ctrl+Shift+M        Vista de movil (probar en pantalla pequena)
+ Ctrl+Shift+J        Abrir directamente la Console
+ Ctrl+R              Recargar
+ Ctrl+Shift+R        Recargar SIN cache (usalo si algo no se actualiza)
+ Ctrl+Shift+Supr     Borrar datos de navegacion
+
+ Regla basica: un error en ROJO en la Console = algo falla.
+ Copia el mensaje completo y pegalo en el chat.
+
+
+7. PROBAR UN MODULO DESDE LA CONSOLA
+------------------------------------
+ Con Live Server en marcha, abre la Console y escribe:
+
+      const e = await import('./js/doomsdayEngine.js');
+      e.weekdayOf(2000, 1, 1)        // debe dar 6 (sabado)
+
+ Pruebas del motor completas:
+      http://127.0.0.1:5500/tests/engine.test.html
+ (todas las pruebas deben salir en verde)
+
+
+8. PROBAR LA PWA (BLOQUE 5)
+---------------------------
+ F12 > pestana Application:
+   - Service Workers:  debe aparecer "activated and is running"
+   - Cache Storage:    debe contener la cache doomsday-vX con los archivos
+   - Manifest:         comprueba nombre e iconos
+ Prueba offline: Application > Service Workers > marcar "Offline",
+ recargar con Ctrl+R y comprobar que la app sigue funcionando.
+ Para empezar de cero: Application > Storage > "Clear site data".
+
+ Si cambias la lista de archivos o quieres que los moviles
+ actualicen: sube CACHE_NAME en service-worker.js
+ (doomsday-v1 -> doomsday-v2) y actualiza la lista ASSETS.
+
+
+9. PUBLICAR EN GITHUB PAGES (BLOQUE 5)
+--------------------------------------
+ En el repositorio: Settings > Pages
+   - Source: Deploy from a branch
+   - Branch: main     Folder: / (root)     > Save
+ En 1-2 minutos la app estara en:
+      https://TUUSUARIO.github.io/doomsday/
+ Cada "git push" a main vuelve a publicar la web (tarda 1-2 min).
+
+ Instalar en el movil: abre esa URL en Chrome del movil >
+ menu (tres puntos) > "Instalar aplicacion" / "Anadir a pantalla de inicio".
+
+
+10. PROBLEMAS FRECUENTES
+------------------------
+ "fatal: not a git repository"
+     Estas en la carpeta equivocada. Abre la carpeta doomsday en VS Code.
+
+ "git push" rechazado (rejected / non-fast-forward)
+     Hay cambios en GitHub que no tienes. Haz "git pull" y repite el push.
+
+ Live Server no abre
+     Comprueba que la extension esta instalada y que abriste la CARPETA
+     (no solo un archivo suelto). Usa clic derecho en index.html >
+     Open with Live Server.
+
+ Los cambios no se ven en el movil o en la web publicada
+     Casi seguro es la cache del service worker: sube CACHE_NAME,
+     haz push y recarga con Ctrl+Shift+R (o cierra y abre la app).
+
+ Error de modulos al abrir el HTML con doble clic
+     Los modulos ES no funcionan con file://. Usa siempre Live Server.
+
+ Atajo de seguridad antes de un cambio grande:
+      git add . && git commit -m "punto de control"
