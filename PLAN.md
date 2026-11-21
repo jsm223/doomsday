@@ -3,7 +3,7 @@
 > Este archivo es la **fuente de verdad** del proyecto. Vive en la carpeta del proyecto, no en el chat.
 > Solo cambia el contrato (sección 5) si es imprescindible, y cada cambio se anota en la sección 8.
 
-**Bloque actual:** 0  |  **Última tarea cerrada:** (ninguna)
+**Bloque actual:** 2  |  **Última tarea cerrada:** 1.6
 
 ---
 
@@ -26,7 +26,8 @@ Prioridades, en este orden:
 3. Tras cada archivo, termina con un estado de 3 líneas: *archivo entregado · tarea del checklist cubierta · siguiente archivo*.
 4. Código sin dependencias externas. Identificadores en inglés, comentarios y textos de interfaz en español. Rutas siempre relativas.
 5. Si algo del contrato es insuficiente, para y propón el cambio. No lo apliques en silencio.
-6. Cuando se cierre un bloque, devuelve este `PLAN.md` con las casillas actualizadas.
+6. Tras cada archivo, incluye las líneas exactas para probarlo en la Console del navegador y el resultado esperado.
+7. Cuando se cierre un bloque, devuelve este `PLAN.md` con las actualizaciones precisas (bloques marcados, cabecera cambiada, cambios anotados), pero no borres nada ni cambies el resto. Cuando se termine un bloque, avísalo y pide al usuario que diga "Siguiente bloque", y devuelve el `PLAN.md` ya cambiado y la plantilla para abrir conversación actualizada y lista para copiar y pegar.
 
 ### Reglas para ti
 1. Guarda cada archivo en la carpeta en cuanto te lo den.
@@ -66,12 +67,13 @@ doomsday/
    ├─ storageManager.js
    ├─ statsCalculator.js
    ├─ statsView.js
+   ├─ calculatorView.js
    └─ uiController.js
 ```
 
 | Archivo | Responsabilidad |
 |---|---|
-| `index.html` | Esqueleto de pantallas (menú, juego, estadísticas, ajustes). Carga `main.js`. |
+| `index.html` | Esqueleto de pantallas (menú, juego, estadísticas, calculadora, ajustes). Carga `main.js`. |
 | `styles.css` | Mobile-first, temas claro/oscuro con variables CSS. |
 | `manifest.json` / `service-worker.js` | Instalación y caché offline. |
 | `main.js` | Punto de entrada: crea módulos, los conecta, registra el service worker. |
@@ -83,6 +85,7 @@ doomsday/
 | `storageManager.js` | `localStorage` (ajustes, récord) e `IndexedDB` (historial). |
 | `statsCalculator.js` | Registro de métricas; funciones puras sobre el historial. |
 | `statsView.js` | Dibuja el panel de estadísticas a partir de los resultados de las métricas. |
+| `calculatorView.js` | Herramienta de consulta: dado un año (o una fecha) muestra el doomsday o el día de la semana con su desglose. No es un modo y no guarda historial. |
 | `uiController.js` | Único módulo que gestiona las pantallas del juego: eventos, selectores, tema. |
 | `tests/engine.test.html` | Pruebas del motor en el navegador, sin instalar nada. |
 
@@ -90,7 +93,7 @@ doomsday/
 
 ## 4. Reglas de arquitectura
 
-- **Dependencias en un solo sentido:** `uiController → gameModes → doomsdayEngine`; `uiController → storageManager`; `uiController → statsView → statsCalculator`. Nunca al revés.
+- **Dependencias en un solo sentido:** `uiController → gameModes → doomsdayEngine`; `uiController → storageManager`; `uiController → statsView → statsCalculator`; `uiController → calculatorView → doomsdayEngine`. Nunca al revés.
 - `doomsdayEngine`, `methods/*`, `statsCalculator` y `config` son **puros**: no usan DOM, `localStorage` ni `IndexedDB`.
 - La interfaz **nunca nombra un elemento concreto** (modo, método, nivel, métrica). Construye sus selectores recorriendo los registros.
 - Todo lo ampliable se declara como **dato u objeto registrado** (array o `Map`), no como `if/switch` repartidos.
@@ -135,7 +138,9 @@ export function getMethod(id) → Method          // lanza error si no existe
 ### 5.4 `doomsdayEngine.js` (puro)
 ```js
 export function isLeap(year) → boolean
-export function centuryAnchor(year) → 0-6 //reexporta methods/anchor.js
+export function isValidDate(year, month, day) → boolean
+export function buildQuestion(year, month, day) → Question
+export function centuryAnchor(year) → 0-6                  // reexporta methods/anchor.js
 export function doomsdayOfYear(year) → 0-6
 export function doomsdayOfMonth(year, month) → number     // día del mes que cae en doomsday
 export function weekdayOf(year, month, day) → 0-6
@@ -175,14 +180,20 @@ export function createSession(modeId, { settings, initialBestStreak }) → Sessi
 Reglas iniciales (modificables, anotar si cambian):
 - **Práctica:** sin temporizador ni racha; pistas ilimitadas.
 - **Competición:** temporizador por pregunta según `TIME_LEVELS`; racha actual y récord; pedir pista o solución **rompe la racha**; agotar el tiempo cuenta como fallo (`timedOut: true`).
+- `start()` reinicia el estado y emite el primer `'question'` (equivale a `next()`).
+- `showSolution()` emite `'solution'` y después `'result'` (`correct: false`, `guess: null`, `solutionShown: true`).
+- Agotar el tiempo emite `'result'` con `timedOut: true` y `guess: null`.
+- Tras un `'result'` la sesión espera a que la interfaz llame a `next()`; un `submit` repetido se ignora.
+- `requestHint()` tras la última pista no emite nada.
+- `initialBestStreak` lo obtiene la interfaz con `storage.getBestStreak(modeId)`; la sesión emite `'streak'` y la interfaz lo guarda con `saveBestStreak(modeId, n)`.
 
 ### 5.6 `storageManager.js`
 ```js
 export async function init() → void
 export function loadSettings() → Settings              // mezcla con DEFAULT_SETTINGS
 export function saveSettings(partial) → void
-export function getBestStreak() → number
-export function saveBestStreak(n) → void
+export function getBestStreak(modeId) → number         // récord por modo
+export function saveBestStreak(modeId, n) → void
 export async function addAttempt(attempt) → void
 export async function getAttempts() → Attempt[]
 export async function clearAttempts() → void
@@ -214,6 +225,16 @@ export function init({ root, storage, gameModes, stats }) → void
 - `manifest.json`: `lang: "es"`, `start_url: "./"`, `scope: "./"`, `display: "standalone"`, iconos 192/512 (también *maskable*).
 - `service-worker.js`: `CACHE_NAME = 'doomsday-v1'` y lista `ASSETS` con todos los archivos. `install` precarga; `activate` borra cachés antiguas; `fetch` es *cache-first*.
 
+### 5.9 `calculatorView.js`
+```js
+export function render(container, { engine, methods }) → void
+// Formulario: año (obligatorio), mes y día (opcionales) y selector de método
+// construido con methods.listMethods().
+// Solo año → doomsday del año y día doomsday de cada mes.
+// Fecha completa → buildQuestion + getSolution.
+// No genera Attempt: no toca el historial ni las estadísticas.
+```
+
 ---
 
 ## 6. Checklist
@@ -230,10 +251,10 @@ export function init({ root, storage, gameModes, stats }) → void
 - [x] 1.3 `doomsdayEngine.js` · *Hecho cuando:* `weekdayOf` coincide con `Date` en todos los días de 1600–2500 (muestra amplia)
 - [x] 1.4 `tests/engine.test.html` · *Hecho cuando:* muestra todas las pruebas en verde en el navegador
 - [x] 1.5 Pistas y solución · *Hecho cuando:* ninguna pista revela el resultado y la solución termina en la respuesta correcta
-- [x] 1.6 (isValidDate y buildQuestion)
+- [x] 1.6 `isValidDate` y `buildQuestion` · *Hecho cuando:* rechazan el 29/2 de un año no bisiesto y `buildQuestion` coincide con `weekdayOf`
 
 ### Bloque 2 — Persistencia y modos
-- [ ] 2.1 `storageManager.js` · *Hecho cuando:* ajustes y récord sobreviven a recargar; `addAttempt`/`getAttempts` funcionan
+- [ ] 2.1 `storageManager.js` · *Hecho cuando:* ajustes y récord (por modo) sobreviven a recargar; `addAttempt`/`getAttempts` funcionan
 - [ ] 2.2 `modes/practice.js` · *Hecho cuando:* una sesión emite `question` y `result` desde la consola
 - [ ] 2.3 `modes/competition.js` · *Hecho cuando:* el `tick`, la racha, el récord y el `timedOut` se comportan según 5.5
 - [ ] 2.4 `modes/index.js` y `gameModes.js` · *Hecho cuando:* `listModes()` devuelve ambos y `createSession` funciona
@@ -248,6 +269,10 @@ export function init({ root, storage, gameModes, stats }) → void
 - [ ] 4.3 `uiController.js`: pantalla de juego (pregunta, respuesta, pistas, solución, temporizador, racha)
 - [ ] 4.4 `uiController.js`: guarda cada intento y abre estadísticas
 - [ ] 4.5 `main.js` · *Hecho cuando:* una partida completa funciona de principio a fin en el navegador
+
+### Bloque 4B — Calculadora (después del Bloque 4)
+- [ ] 4B.1 `calculatorView.js` · *Hecho cuando:* con solo el año muestra su doomsday y con fecha completa muestra el día de la semana y el desglose
+- [ ] 4B.2 Integración en el menú (`index.html` + `uiController.js`)
 
 ### Bloque 5 — PWA
 - [ ] 5.1 `manifest.json` e iconos
@@ -278,5 +303,10 @@ Siempre que cambie la lista de archivos: actualizar `ASSETS` y subir `CACHE_NAME
 
 ## 8. Registro de decisiones
 
-- (vacío) Formato: `fecha · decisión · motivo`.
-- 2026-11-21 · centuryAnchor vive en methods/anchor.js; el motor lo reexporta · evita el import circular entre motor y métodos.
+Formato: `fecha · decisión · motivo`.
+
+- 2026-11-21 · centuryAnchor vive en methods/anchor.js; el motor lo reexporta · evita el import circular entre motor y métodos
+- 2026-11-21 · doomsdayOfYear es el cálculo canónico del motor y no usa los métodos registrados; el motor comprueba que coinciden · permite quitar un método sin romper el motor
+- 2026-11-21 · el motor incluye isValidDate y buildQuestion · base para la futura calculadora de fechas (herramienta, no modo)
+- 2026-11-21 · 5.5 aclarado (start, showSolution, timeout, pistas) y récord de racha por modo (getBestStreak/saveBestStreak reciben modeId) · evitar ambigüedades en el Bloque 2
+- 2026-11-21 · calculatorView.js se añade como herramienta aparte (Bloque 4B, contrato 5.9) · la calculadora no es un modo y no genera historial
