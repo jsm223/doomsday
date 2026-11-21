@@ -3,7 +3,7 @@
 > Este archivo es la **fuente de verdad** del proyecto. Vive en la carpeta del proyecto, no en el chat.
 > Solo cambia el contrato (sección 5) si es imprescindible, y cada cambio se anota en la sección 8.
 
-**Bloque actual:** 2  |  **Última tarea cerrada:** 1.6
+**Bloque actual:** 2  |  **Última tarea cerrada:** 2.3
 
 ---
 
@@ -187,6 +187,15 @@ Reglas iniciales (modificables, anotar si cambian):
 - `requestHint()` tras la última pista no emite nada.
 - `initialBestStreak` lo obtiene la interfaz con `storage.getBestStreak(modeId)`; la sesión emite `'streak'` y la interfaz lo guarda con `saveBestStreak(modeId, n)`.
 
+Aclaraciones del Bloque 2 (ya implementadas en `practice.js` y `competition.js`):
+- `'hint'`: `index` va de 1 a `total` (número de la pista mostrada).
+- `'tick'` (Competición): se emite al abrir cada pregunta con el tiempo completo y después cada vez que cambia el segundo restante, hasta `0`; el `0` va justo antes del `'result'` con `timedOut: true`.
+- `'streak'`: se emite solo cuando cambia la racha o el récord, y una vez al hacer `start()`. Pedir una pista emite `'hint'` y después `'streak'` con `current: 0`.
+- Acertar tras pedir una pista cuenta como acierto, pero no suma racha.
+- `start()` reinicia la racha actual y conserva el récord de la sesión.
+- `submit(guess)` ignora (sin cerrar la pregunta) las respuestas que no sean enteros de 0 a 6.
+- `modes/index.js` exporta `listModes()` (copia del array) y `getMode(id)` (lanza error si no existe), igual que `methods/index.js`, y comprueba que los ids sean únicos.
+
 ### 5.6 `storageManager.js`
 ```js
 export async function init() → void
@@ -254,9 +263,9 @@ export function render(container, { engine, methods }) → void
 - [x] 1.6 `isValidDate` y `buildQuestion` · *Hecho cuando:* rechazan el 29/2 de un año no bisiesto y `buildQuestion` coincide con `weekdayOf`
 
 ### Bloque 2 — Persistencia y modos
-- [ ] 2.1 `storageManager.js` · *Hecho cuando:* ajustes y récord (por modo) sobreviven a recargar; `addAttempt`/`getAttempts` funcionan
-- [ ] 2.2 `modes/practice.js` · *Hecho cuando:* una sesión emite `question` y `result` desde la consola
-- [ ] 2.3 `modes/competition.js` · *Hecho cuando:* el `tick`, la racha, el récord y el `timedOut` se comportan según 5.5
+- [x] 2.1 `storageManager.js` · *Hecho cuando:* ajustes y récord (por modo) sobreviven a recargar; `addAttempt`/`getAttempts` funcionan
+- [x] 2.2 `modes/practice.js` · *Hecho cuando:* una sesión emite `question` y `result` desde la consola
+- [x] 2.3 `modes/competition.js` · *Hecho cuando:* el `tick`, la racha, el récord y el `timedOut` se comportan según 5.5
 - [ ] 2.4 `modes/index.js` y `gameModes.js` · *Hecho cuando:* `listModes()` devuelve ambos y `createSession` funciona
 
 ### Bloque 3 — Estadísticas
@@ -310,3 +319,7 @@ Formato: `fecha · decisión · motivo`.
 - 2026-11-21 · el motor incluye isValidDate y buildQuestion · base para la futura calculadora de fechas (herramienta, no modo)
 - 2026-11-21 · 5.5 aclarado (start, showSolution, timeout, pistas) y récord de racha por modo (getBestStreak/saveBestStreak reciben modeId) · evitar ambigüedades en el Bloque 2
 - 2026-11-21 · calculatorView.js se añade como herramienta aparte (Bloque 4B, contrato 5.9) · la calculadora no es un modo y no genera historial
+- 2026-11-21 · 5.5 ampliado con aclaraciones del Bloque 2: `hint.index` de 1 a `total`; `tick` inicial con el tiempo completo y hasta `0`; `streak` solo al cambiar y en `start()`; acertar con pista no suma racha; `start()` conserva el récord; `submit` ignora respuestas no válidas · el contrato no lo especificaba y `practice.js` y `competition.js` ya lo implementan
+- 2026-11-21 · `modes/index.js` exporta `listModes()` y `getMode(id)` y comprueba ids únicos · mismo patrón que `methods/index.js`; `gameModes.js` será la fachada
+- 2026-11-21 · el temporizador de Competición usa una hora límite revisada cada 250 ms, no un contador de 1 s · no se desvía si el navegador retrasa los avisos
+- 2026-11-21 · `storageManager.js` guarda el historial en IndexedDB con clave autoincremental externa y cae a memoria si IndexedDB o `localStorage` no están disponibles · el `Attempt` se guarda tal cual y la app sigue funcionando en navegadores restrictivos
