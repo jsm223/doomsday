@@ -3,7 +3,7 @@
 > Este archivo es la **fuente de verdad** del proyecto. Vive en la carpeta del proyecto, no en el chat.
 > Solo cambia el contrato (sección 5) si es imprescindible, y cada cambio se anota en la sección 8.
 
-**Bloque actual:** 2  |  **Última tarea cerrada:** 2.3
+**Bloque actual:** 5  |  **Última tarea cerrada:** 4B2
 
 ---
 
@@ -266,27 +266,27 @@ export function render(container, { engine, methods }) → void
 - [x] 2.1 `storageManager.js` · *Hecho cuando:* ajustes y récord (por modo) sobreviven a recargar; `addAttempt`/`getAttempts` funcionan
 - [x] 2.2 `modes/practice.js` · *Hecho cuando:* una sesión emite `question` y `result` desde la consola
 - [x] 2.3 `modes/competition.js` · *Hecho cuando:* el `tick`, la racha, el récord y el `timedOut` se comportan según 5.5
-- [ ] 2.4 `modes/index.js` y `gameModes.js` · *Hecho cuando:* `listModes()` devuelve ambos y `createSession` funciona
+- [x] 2.4 `modes/index.js` y `gameModes.js` · *Hecho cuando:* `listModes()` devuelve ambos y `createSession` funciona
 
 ### Bloque 3 — Estadísticas
-- [ ] 3.1 `statsCalculator.js` (6 métricas) · *Hecho cuando:* con historial de prueba, los números cuadran a mano
-- [ ] 3.2 `statsView.js` · *Hecho cuando:* pinta los tres tipos (`number`, `table`, `bars`) y un historial vacío sin errores
+- [x] 3.1 `statsCalculator.js` (6 métricas) · *Hecho cuando:* con historial de prueba, los números cuadran a mano
+- [x] 3.2 `statsView.js` · *Hecho cuando:* pinta los tres tipos (`number`, `table`, `bars`) y un historial vacío sin errores
 
 ### Bloque 4 — Interfaz
-- [ ] 4.1 `index.html` + `styles.css` (tema claro/oscuro) · *Hecho cuando:* se ve bien en pantalla de móvil y cambia de tema
-- [ ] 4.2 `uiController.js`: menú y ajustes generados desde los registros
-- [ ] 4.3 `uiController.js`: pantalla de juego (pregunta, respuesta, pistas, solución, temporizador, racha)
-- [ ] 4.4 `uiController.js`: guarda cada intento y abre estadísticas
-- [ ] 4.5 `main.js` · *Hecho cuando:* una partida completa funciona de principio a fin en el navegador
+- [x] 4.1 `index.html` + `styles.css` (tema claro/oscuro) · *Hecho cuando:* se ve bien en pantalla de móvil y cambia de tema
+- [x] 4.2 `uiController.js`: menú y ajustes generados desde los registros
+- [x] 4.3 `uiController.js`: pantalla de juego (pregunta, respuesta, pistas, solución, temporizador, racha)
+- [x] 4.4 `uiController.js`: guarda cada intento y abre estadísticas
+- [x] 4.5 `main.js` · *Hecho cuando:* una partida completa funciona de principio a fin en el navegador
 
 ### Bloque 4B — Calculadora (después del Bloque 4)
-- [ ] 4B.1 `calculatorView.js` · *Hecho cuando:* con solo el año muestra su doomsday y con fecha completa muestra el día de la semana y el desglose
-- [ ] 4B.2 Integración en el menú (`index.html` + `uiController.js`)
+- [x] 4B.1 `calculatorView.js` · *Hecho cuando:* con solo el año muestra su doomsday y con fecha completa muestra el día de la semana y el desglose
+- [x] 4B.2 Integración en el menú (`index.html` + `uiController.js`)
 
 ### Bloque 5 — PWA
-- [ ] 5.1 `manifest.json` e iconos
-- [ ] 5.2 `service-worker.js` · *Hecho cuando:* Chrome DevTools → Application muestra el SW activo y la caché llena
-- [ ] 5.3 Prueba offline · *Hecho cuando:* con *Offline* activado en DevTools, la app carga y se puede jugar
+- [x] 5.1 `manifest.json` e iconos
+- [x] 5.2 `service-worker.js` · *Hecho cuando:* Chrome DevTools → Application muestra el SW activo y la caché llena
+- [x] 5.3 Prueba offline · *Hecho cuando:* con *Offline* activado en DevTools, la app carga y se puede jugar
 - [ ] 5.4 Despliegue en GitHub Pages e instalación en el móvil
 
 ### Bloque 6 — Documentación
@@ -323,3 +323,29 @@ Formato: `fecha · decisión · motivo`.
 - 2026-11-21 · `modes/index.js` exporta `listModes()` y `getMode(id)` y comprueba ids únicos · mismo patrón que `methods/index.js`; `gameModes.js` será la fachada
 - 2026-11-21 · el temporizador de Competición usa una hora límite revisada cada 250 ms, no un contador de 1 s · no se desvía si el navegador retrasa los avisos
 - 2026-11-21 · `storageManager.js` guarda el historial en IndexedDB con clave autoincremental externa y cae a memoria si IndexedDB o `localStorage` no están disponibles · el `Attempt` se guarda tal cual y la app sigue funcionando en navegadores restrictivos
+- 2026-11-25 · `gameModes.js` vive en `js/` y es una fachada fina: `listModes()` delega en `modes/index.js` y `createSession(modeId, options)` llama a `getMode(modeId).create(...)` sin modificar `settings` ni `initialBestStreak` · la interfaz no conoce ningún modo concreto y los errores de id inexistente vienen del registro
+- 2026-11-25 · en `statsCalculator.js`, "Total y precisión" es de tipo `table` (una fila: intentos, aciertos, precisión) y no `number` · el tipo `number` solo admite un valor y aquí hacen falta tres
+- 2026-11-25 · el tiempo medio excluye los intentos con `timedOut` o `solutionShown`; sin datos, los porcentajes y medias valen `null` · su `timeMs` no mide una respuesta real y evita dividir entre cero; `statsView.js` pinta `null` como "—"
+- 2026-11-25 · "Progreso por día" agrupa por día local (`ts` interpretado con `new Date(ts)`) y muestra como máximo los últimos 14 días con actividad · mantiene el gráfico legible en móvil
+- 2026-11-25 · `statsView.js` dibuja según el tipo de métrica con un objeto `RENDERERS` y no nombra ninguna métrica; las barras sin `max` se escalan con el mayor valor del grupo y no llevan unidad · permite añadir métricas sin tocar la vista
+- 2026-11-25 · `index.html` define el contrato de DOM que usa `uiController.js`: pantallas `<section data-screen>`, navegación con `data-goto` y los `id` del esqueleto; solo las opciones de tema están fijas en el HTML · modos, niveles, tiempos, métodos y respuestas se generan desde los registros (sección 4)
+- 2026-11-25 · `styles.css` decide el tema con `data-theme` de `<html>` (`auto` | `light` | `dark`, igual que `Settings.theme`) y reserva las clases `is-correct` / `is-wrong` para el feedback de respuestas y `stats-*` para `statsView.js` · el controlador solo cambia el atributo y las clases
+- 2026-11-25 · `uiController.js` importa directamente `config.js`, `methods/index.js`, `doomsdayEngine.js`, `statsView.js` y `calculatorView.js`, además de recibir `storage`, `gameModes` y `stats` por `init` (5.7 bis sin cambios) · son datos y módulos puros en la dirección permitida de la sección 4; la calculadora recibe `engine` y `methods` como pide 5.9
+- 2026-11-25 · los botones de respuesta se generan desde `WEEKDAYS` y el controlador guarda el récord de racha con `saveBestStreak` solo cuando supera el ya guardado · la interfaz no escribe en cada acierto; al salir de la partida se llama a `session.stop()` y se ignoran los eventos de sesiones anteriores
+- 2026-11-25 · tras fallar (respuesta incorrecta o tiempo agotado) el botón de solución pasa a "Ver cómo se calcula" y muestra el desglose con `getSolution` del motor, sin llamar a `session.showSolution()` · 5.5 dice que `showSolution()` cierra la pregunta como fallada y emite otro `'result'`, y contaría el intento dos veces; el repaso no cuenta como `solutionShown`
+- 2026-11-25 · el recuadro de solución incluye un selector de método generado desde `listMethods()`; elegir uno cambia también el ajuste global `methodId` (se guarda y se sincroniza con Ajustes) y solo redibuja la solución, no las pistas de la partida en curso · pedido por el usuario para no ir a Ajustes; la sesión recibe una copia de los ajustes al crearse (5.5)
+- 2026-11-25 · `uiController.js` guarda cada `'result'` como `Attempt` (también solución pedida y tiempo agotado) con `modeId`, `levelId` y `methodId` de la sesión, no los ajustes del momento; los guardados se encadenan en orden y las estadísticas esperan al último · el método puede cambiar a mitad de partida y un intento recién hecho debe aparecer siempre; un fallo de almacenamiento solo avisa por consola
+- 2026-11-25 · "Borrar historial" pide confirmación y borra solo los intentos, no los récords de racha · son datos distintos (`clearAttempts` frente a `getBestStreak`)
+- 2026-11-25 · `main.js` crea los módulos, llama a `storage.init()` y `init` de la interfaz; si falla el arranque muestra un mensaje en pantalla, y el registro del service worker espera a `load` y un fallo solo avisa por consola · la app debe poder jugarse aunque el service worker no exista o falle
+- 2026-11-25 · en `calculatorView.js`, mes sin día (o día sin mes) es un error con mensaje, no una consulta parcial; el método inicial es el primero del registro y no depende de los ajustes; la pantalla se monta una sola vez y conserva lo último consultado · el contrato 5.9 no pasa `settings` y con solo el año ya se ven los días doomsday de todos los meses
+- 2026-11-25 · el rango de años de la calculadora es fijo (1600–2500, constantes `MIN_YEAR` / `MAX_YEAR` de `calculatorView.js`) y no depende de `LEVELS` · petición del usuario: debe ser siempre completo; 1600–2500 es el rango que el motor tiene comprobado contra `Date` (1.3)
+
+---
+ 
+## 9. TODO
+ 
+Mejoras pedidas que no pertenecen al bloque actual. Al empezar una, anotar en la sección 8 lo que cambie del contrato.
+ 
+- [ ] **Primer día de la semana configurable (domingo o lunes).** Hoy los botones de respuesta salen en el orden de `WEEKDAYS` (Domingo primero). Debe poder elegirse domingo o lunes como primer día. Solo cambia el orden de presentación: la convención de datos (`0=Domingo … 6=Sábado`) no se toca. Implica un campo nuevo en `Settings` (5.1) y en `DEFAULT_SETTINGS`, un selector en Ajustes y el orden de los botones en `uiController.js`.
+- [ ] **Rango de años de la calculadora siempre completo.** No debe depender de los niveles (hecho en 4B.1 con el rango fijo 1600–2500). Pendiente decidir si "completo" significa ampliarlo más allá de 2500 o por debajo de 1600; en ese caso, probar antes el motor con esos años (1.3 y `tests/engine.test.html`) y cambiar `MIN_YEAR` / `MAX_YEAR` en `calculatorView.js`, anotando el cambio en la sección 8.
+- [ ] Poder configurar los aspectos del modo competición (el tiempo total, que acertar sume tiempo...)

@@ -1,0 +1,461 @@
+/* styles.css
+   Mobile-first. Tema claro/oscuro con variables CSS.
+   El tema lo decide el atributo data-theme de <html>:
+     · "auto"  → sigue al dispositivo (prefers-color-scheme)
+     · "light" → claro siempre
+     · "dark"  → oscuro siempre
+   Para cambiar colores basta con tocar las variables de los bloques de tema. */
+
+/* ============ 1. Tema ============ */
+
+:root {
+  color-scheme: light;
+  --bg: #f8fafc;
+  --surface: #ffffff;
+  --text: #0f172a;
+  --text-muted: #475569;
+  --border: #cbd5e1;
+  --accent: #2563eb;
+  --accent-text: #ffffff;
+  --danger: #b91c1c;
+  --ok: #15803d;
+  --ok-bg: #dcfce7;
+  --bad-bg: #fee2e2;
+  --focus: #1d4ed8;
+  --stats-track: rgba(100, 116, 139, 0.25);
+  --stats-fill: var(--accent);
+}
+
+/* Oscuro cuando el tema es "auto" y el dispositivo lo prefiere. */
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="auto"] {
+    color-scheme: dark;
+    --bg: #0f172a;
+    --surface: #1e293b;
+    --text: #e2e8f0;
+    --text-muted: #94a3b8;
+    --border: #475569;
+    --accent: #60a5fa;
+    --accent-text: #0f172a;
+    --danger: #f87171;
+    --ok: #4ade80;
+    --ok-bg: #14532d;
+    --bad-bg: #7f1d1d;
+    --focus: #93c5fd;
+    --stats-track: rgba(148, 163, 184, 0.25);
+  }
+}
+
+/* Oscuro forzado desde Ajustes. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0f172a;
+  --surface: #1e293b;
+  --text: #e2e8f0;
+  --text-muted: #94a3b8;
+  --border: #475569;
+  --accent: #60a5fa;
+  --accent-text: #0f172a;
+  --danger: #f87171;
+  --ok: #4ade80;
+  --ok-bg: #14532d;
+  --bad-bg: #7f1d1d;
+  --focus: #93c5fd;
+  --stats-track: rgba(148, 163, 184, 0.25);
+}
+
+/* ============ 2. Base ============ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* Sin esto, "display" de las reglas de abajo anularía el atributo hidden. */
+[hidden] {
+  display: none !important;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 1rem;
+  line-height: 1.5;
+  /* Respeta la muesca y las barras del móvil */
+  padding: env(safe-area-inset-top) env(safe-area-inset-right)
+    env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+#app {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+h1,
+h2,
+h3 {
+  line-height: 1.2;
+  margin: 0 0 0.5rem;
+}
+
+h1 {
+  font-size: 2rem;
+}
+
+h2 {
+  font-size: 1.4rem;
+}
+
+h3 {
+  font-size: 1.1rem;
+}
+
+p {
+  margin: 0 0 0.75rem;
+}
+
+.subtitle,
+.hint {
+  color: var(--text-muted);
+}
+
+.hint {
+  font-size: 0.9rem;
+  margin: 0.25rem 0 0;
+}
+
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* ============ 3. Controles ============ */
+
+button,
+select,
+input {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  min-height: 2.75rem; /* zona táctil cómoda */
+  padding: 0.5rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+
+button:hover {
+  border-color: var(--accent);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+  font-weight: 600;
+}
+
+button.danger {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+select,
+input[type="number"],
+input[type="text"] {
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+}
+
+label {
+  font-weight: 600;
+}
+
+/* Campos de formulario (Ajustes, menú, calculadora) */
+.field {
+  margin: 0 0 1rem;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.field legend {
+  padding: 0;
+  margin-bottom: 0.4rem;
+  font-weight: 600;
+}
+
+.field > label {
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+/* Fila de botones */
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.actions > button {
+  flex: 1 1 8rem;
+}
+
+/* Lista de opciones del menú (modos): radios generados desde el registro */
+.choice-list {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.choice-list label,
+.choice-list .choice {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 2.75rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.choice-list input[type="radio"] {
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: var(--accent);
+}
+
+.choice-list label:has(input:checked) {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+/* ============ 4. Cabecera de pantalla ============ */
+
+.screen-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.screen-header h2 {
+  margin: 0;
+}
+
+.screen-header button {
+  min-width: 2.75rem;
+  padding: 0.5rem;
+}
+
+/* ============ 5. Juego ============ */
+
+.game-status {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.25rem 1rem;
+  color: var(--text-muted);
+}
+
+.game-status p {
+  margin: 0;
+}
+
+.question {
+  margin: 1rem 0;
+  padding: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  font-size: 1.6rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* Botones de respuesta: 2 columnas en móvil, 4 en pantallas anchas */
+.answers {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+}
+
+.answers button {
+  min-height: 3.25rem;
+  font-size: 1.05rem;
+}
+
+.answers button.is-correct {
+  background: var(--ok-bg);
+  border-color: var(--ok);
+}
+
+.answers button.is-wrong {
+  background: var(--bad-bg);
+  border-color: var(--danger);
+}
+
+.feedback {
+  min-height: 1.5rem;
+  margin: 0.75rem 0 0;
+  font-weight: 600;
+}
+
+.feedback.is-correct {
+  color: var(--ok);
+}
+
+.feedback.is-wrong {
+  color: var(--danger);
+}
+
+.hints,
+#game-solution ol {
+  margin: 0.5rem 0;
+  padding-left: 1.25rem;
+}
+
+.hints li,
+#game-solution li {
+  margin-bottom: 0.4rem;
+}
+
+#game-solution {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+}
+
+/* ============ 6. Estadísticas (clases de statsView.js) ============ */
+
+.stats-metric {
+  margin-bottom: 1.25rem;
+  padding: 0.75rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+}
+
+.stats-title {
+  margin-bottom: 0.5rem;
+}
+
+.stats-number {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.stats-number-value {
+  font-weight: 700;
+}
+
+.stats-number-unit {
+  color: var(--text-muted);
+  font-size: 1rem;
+}
+
+.stats-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.stats-table th,
+.stats-table td {
+  padding: 0.4rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+  text-align: right;
+}
+
+.stats-table th:first-child,
+.stats-table td:first-child {
+  text-align: left;
+}
+
+.stats-table th {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.stats-bar-label,
+.stats-bar-value {
+  font-size: 0.9rem;
+}
+
+.stats-bar-value {
+  text-align: right;
+}
+
+.stats-empty {
+  color: var(--text-muted);
+  margin: 0;
+}
+
+/* ============ 7. Calculadora (formulario y resultado genéricos) ============ */
+
+#calculator-container form {
+  display: grid;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+#calculator-container table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+#calculator-container th,
+#calculator-container td {
+  padding: 0.4rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+
+/* ============ 8. Pantallas anchas ============ */
+
+@media (min-width: 40rem) {
+  #app {
+    padding: 2rem 1rem;
+  }
+
+  .answers {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .actions > button {
+    flex: 0 1 auto;
+  }
+}
+
+/* Respeta la preferencia de menos movimiento */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}

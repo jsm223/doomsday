@@ -1,4 +1,147 @@
-<!doctype html>
-<html lang="es"><meta charset="utf-8">
-<title>Doomsday</title>
-<h1>Doomsday</h1>
+<!DOCTYPE html>
+<html lang="es" data-theme="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#f8fafc" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)">
+  <meta name="description" content="Entrena el cálculo mental del día de la semana con el algoritmo Doomsday.">
+  <title>Doomsday</title>
+
+  <!-- PWA (se crean en el Bloque 5; hasta entonces dan 404 sin consecuencias) -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <!--
+    Esqueleto de pantallas. Solo hay estructura: textos fijos, contenedores vacíos
+    y botones. Todo lo ampliable (modos, métodos, niveles, tiempos, botones de
+    respuesta) lo rellena uiController.js recorriendo los registros; aquí no se
+    nombra ninguno.
+
+    Convenciones que usa el controlador:
+      · cada pantalla es <section data-screen="..."> y solo una está visible;
+      · cualquier elemento con data-goto="<pantalla>" navega a esa pantalla;
+      · los id son el "contrato de DOM" entre este archivo y uiController.js.
+  -->
+  <div id="app">
+
+    <!-- ============ MENÚ ============ -->
+    <section data-screen="menu" aria-labelledby="menu-title">
+      <h1 id="menu-title">Doomsday</h1>
+      <p class="subtitle">Entrena el cálculo mental del día de la semana.</p>
+
+      <fieldset class="field">
+        <legend>Modo de juego</legend>
+        <div id="mode-list" class="choice-list"></div>
+        <p id="mode-description" class="hint"></p>
+      </fieldset>
+
+      <div class="actions">
+        <button id="btn-start" type="button" class="primary">Empezar</button>
+        <button type="button" data-goto="stats">Estadísticas</button>
+        <button type="button" data-goto="calculator">Calculadora</button>
+        <button type="button" data-goto="settings">Ajustes</button>
+      </div>
+    </section>
+
+    <!-- ============ JUEGO ============ -->
+    <section data-screen="game" hidden aria-labelledby="game-title">
+      <header class="screen-header">
+        <button type="button" data-goto="menu" aria-label="Salir al menú">←</button>
+        <h2 id="game-title">Partida</h2>
+      </header>
+
+      <div class="game-status">
+        <p id="game-streak" hidden>
+          Racha: <strong id="game-streak-current">0</strong>
+          · Récord: <strong id="game-streak-best">0</strong>
+        </p>
+        <p id="game-timer" hidden role="timer">
+          Tiempo: <strong id="game-timer-value">0</strong> s
+        </p>
+      </div>
+
+      <p id="game-question" class="question" aria-live="polite"></p>
+      <div id="game-answers" class="answers" role="group" aria-label="Día de la semana"></div>
+
+      <p id="game-feedback" class="feedback" role="status" aria-live="polite"></p>
+      <ol id="game-hints" class="hints"></ol>
+
+      <div id="game-solution" hidden>
+        <h3>Solución</h3>
+        <ol id="game-solution-steps"></ol>
+      </div>
+
+      <div class="actions">
+        <button id="btn-hint" type="button">Pista</button>
+        <button id="btn-solution" type="button">Ver solución</button>
+        <button id="btn-next" type="button" class="primary" hidden>Siguiente</button>
+      </div>
+    </section>
+
+    <!-- ============ ESTADÍSTICAS ============ -->
+    <section data-screen="stats" hidden aria-labelledby="stats-title">
+      <header class="screen-header">
+        <button type="button" data-goto="menu" aria-label="Volver al menú">←</button>
+        <h2 id="stats-title">Estadísticas</h2>
+      </header>
+      <div id="stats-container"></div>
+      <div class="actions">
+        <button id="btn-clear-stats" type="button" class="danger">Borrar historial</button>
+      </div>
+    </section>
+
+    <!-- ============ CALCULADORA ============ -->
+    <section data-screen="calculator" hidden aria-labelledby="calculator-title">
+      <header class="screen-header">
+        <button type="button" data-goto="menu" aria-label="Volver al menú">←</button>
+        <h2 id="calculator-title">Calculadora</h2>
+      </header>
+      <div id="calculator-container"></div>
+    </section>
+
+    <!-- ============ AJUSTES ============ -->
+    <section data-screen="settings" hidden aria-labelledby="settings-title">
+      <header class="screen-header">
+        <button type="button" data-goto="menu" aria-label="Volver al menú">←</button>
+        <h2 id="settings-title">Ajustes</h2>
+      </header>
+
+      <div class="field">
+        <label for="setting-theme">Tema</label>
+        <select id="setting-theme">
+          <option value="auto">Automático (según el dispositivo)</option>
+          <option value="light">Claro</option>
+          <option value="dark">Oscuro</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="setting-level">Rango de años</label>
+        <select id="setting-level"></select>
+      </div>
+
+      <div class="field" id="setting-time-field">
+        <label for="setting-time">Tiempo por pregunta</label>
+        <select id="setting-time"></select>
+        <p class="hint">Solo se aplica en los modos con temporizador.</p>
+      </div>
+
+      <div class="field">
+        <label for="setting-method">Método de cálculo</label>
+        <select id="setting-method"></select>
+        <p id="setting-method-description" class="hint"></p>
+      </div>
+    </section>
+
+  </div>
+
+  <noscript>Esta aplicación necesita JavaScript para funcionar.</noscript>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
