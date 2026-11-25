@@ -349,3 +349,5 @@ Mejoras pedidas que no pertenecen al bloque actual. Al empezar una, anotar en la
 - [ ] **Primer día de la semana configurable (domingo o lunes).** Hoy los botones de respuesta salen en el orden de `WEEKDAYS` (Domingo primero). Debe poder elegirse domingo o lunes como primer día. Solo cambia el orden de presentación: la convención de datos (`0=Domingo … 6=Sábado`) no se toca. Implica un campo nuevo en `Settings` (5.1) y en `DEFAULT_SETTINGS`, un selector en Ajustes y el orden de los botones en `uiController.js`.
 - [ ] **Rango de años de la calculadora siempre completo.** No debe depender de los niveles (hecho en 4B.1 con el rango fijo 1600–2500). Pendiente decidir si "completo" significa ampliarlo más allá de 2500 o por debajo de 1600; en ese caso, probar antes el motor con esos años (1.3 y `tests/engine.test.html`) y cambiar `MIN_YEAR` / `MAX_YEAR` en `calculatorView.js`, anotando el cambio en la sección 8.
 - [ ] Poder configurar los aspectos del modo competición (el tiempo total, que acertar sume tiempo...)
+
+- [ ] Añadir una guía con explicación más detallada del método (0, 5, 3, 2; días de la semana a números, cálculo de bisiestos...)
