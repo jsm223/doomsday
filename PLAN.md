@@ -351,3 +351,5 @@ Mejoras pedidas que no pertenecen al bloque actual. Al empezar una, anotar en la
 - [ ] Poder configurar los aspectos del modo competición (el tiempo total, que acertar sume tiempo...)
 
 - [ ] Añadir una guía con explicación más detallada del método (0, 5, 3, 2; días de la semana a números, cálculo de bisiestos...)
+
+- [ ] Añadir racha de días en plan Duolingo 
